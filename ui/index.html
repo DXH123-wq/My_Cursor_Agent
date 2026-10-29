@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>我的 Cursor</title>
+    <style>
+        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; }
+        #chat { width: 320px; border-right: 1px solid #ccc; padding: 10px; background: #f9f9f9; display: flex; flex-direction: column;}
+        #messages { flex: 1; overflow-y: auto; border: 1px solid #ddd; margin-bottom: 10px; padding: 5px; background: #fff;}
+        .msg { margin-bottom: 8px; padding: 8px; border-radius: 4px; font-size: 14px;}
+        .user { background: #d1e7dd; text-align: right; }
+        .bot { background: #fff3cd; }
+        .input-area { display: flex; gap: 5px; }
+        .input-area input { flex: 1; padding: 5px; }
+        #main { flex: 1; padding: 20px; background: #fff; display: flex; flex-direction: column;}
+        pre { flex: 1; background:#282c34; color:#abb2bf; padding:15px; border-radius: 6px; overflow-y: auto; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div id="chat">
+        <h3>AI 对话面板</h3>
+        <div id="messages"></div>
+        <div class="input-area">
+            <input type="text" id="input" placeholder="输入需求..." onkeypress="if(event.key==='Enter') send()">
+            <button onclick="send()">发送</button>
+            <button onclick="stop()" style="background:#ffcccc;">中断</button>
+        </div>
+    </div>
+    <div id="main">
+        <h2>文件工作区 / 执行日志</h2>
+        <pre id="code">等待操作...</pre>
+    </div>
+    <script>
+        // 这个函数专门用来接收 Python 传过来的日志，并显示在右侧
+        function updateLog(text) {
+            let codeBlock = document.getElementById('code');
+            codeBlock.innerText += "\n" + text;
+            codeBlock.scrollTop = codeBlock.scrollHeight;
+        }
+
+        async function send() {
+            let val = document.getElementById('input').value;
+            if(!val) return;
+            let msgs = document.getElementById('messages');
+            msgs.innerHTML += `<div class="msg user">${val}</div>`;
+            document.getElementById('input').value = '';
+
+            let loadingId = "loading-" + Date.now();
+            msgs.innerHTML += `<div class="msg bot" id="${loadingId}">正在思考/调用工具中...</div>`;
+            msgs.scrollTop = msgs.scrollHeight;
+
+            // 每次发送前，清空右侧日志
+            document.getElementById('code').innerText = "开始执行...\n";
+
+            // 调用 Python 后端
+            let res = await pywebview.api.chat(val);
+
+            document.getElementById(loadingId).remove();
+            msgs.innerHTML += `<div class="msg bot">${res}</div>`;
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+
+        async function stop() {
+            await pywebview.api.stop();
+        }
+    </script>
+</body>
+</html>
